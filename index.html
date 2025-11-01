@@ -577,6 +577,200 @@
         #preview-content p {
             color: var(--text-secondary);
         }
+
+        /* Journal Styles */
+        .mood-selector {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .mood-btn {
+            font-size: 3em;
+            background: var(--card-bg);
+            border: 3px solid var(--border-color);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mood-btn:hover {
+            transform: scale(1.1);
+            border-color: #7e22ce;
+        }
+
+        .mood-btn.selected {
+            border-color: #7e22ce;
+            background: linear-gradient(135deg, #1e3c72 0%, #7e22ce 100%);
+            transform: scale(1.1);
+        }
+
+        .slider-container {
+            margin: 25px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .slider-value {
+            display: inline-block;
+            margin-left: 15px;
+            font-weight: bold;
+            color: #7e22ce;
+            font-size: 1.2em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: var(--border-color);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #7e22ce;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #7e22ce;
+            cursor: pointer;
+            border: none;
+        }
+
+        .side-effects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .side-effect-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: var(--item-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .side-effect-checkbox:hover {
+            background: var(--border-color);
+        }
+
+        .side-effect-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .journal-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            background: var(--item-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        .calendar-day.has-entry {
+            background: linear-gradient(135deg, #1e3c72 0%, #7e22ce 100%);
+            color: white;
+        }
+
+        .calendar-day.today {
+            border: 2px solid #7e22ce;
+        }
+
+        .calendar-day-number {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .calendar-day-mood {
+            font-size: 1.5em;
+            margin-top: 5px;
+        }
+
+        .journal-entry-display {
+            background: var(--item-bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .journal-entry-display h4 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+
+        .journal-stats {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .journal-stat {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px;
+            background: linear-gradient(135deg, #1e3c72 0%, #7e22ce 100%);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .journal-stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .journal-stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -665,6 +859,7 @@
                     <button class="tab-btn" onclick="switchTab('medications')">My Medications</button>
                     <button class="tab-btn" onclick="switchTab('add')">Add Medication</button>
                     <button class="tab-btn" onclick="switchTab('analytics')">Analytics</button>
+                    <button class="tab-btn" onclick="switchTab('journal')">Journal</button>
                     <button class="tab-btn" onclick="switchTab('history')">History</button>
                     <button class="tab-btn" onclick="switchTab('export')">Export/Print</button>
                 </div>
@@ -924,6 +1119,134 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                             <div class="empty-state-icon">⏰</div>
                             <h3>Need more data</h3>
                             <p>Track medications for at least 7 days to see time analysis</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Tab -->
+            <div id="journal-tab" class="tab-content">
+                <div class="card">
+                    <h2>📝 Daily Journal</h2>
+                    <p style="margin-bottom: 20px; color: var(--text-secondary);">Track your daily mood, energy, pain levels, and side effects</p>
+                    
+                    <!-- Date Selector -->
+                    <div class="form-group">
+                        <label for="journal-date">Entry Date</label>
+                        <input type="date" id="journal-date" onchange="loadJournalEntry()">
+                    </div>
+
+                    <!-- Mood Selector -->
+                    <div class="form-group">
+                        <label>How are you feeling today?</label>
+                        <div class="mood-selector">
+                            <button type="button" class="mood-btn" data-mood="great" title="Great">😄</button>
+                            <button type="button" class="mood-btn" data-mood="good" title="Good">🙂</button>
+                            <button type="button" class="mood-btn" data-mood="okay" title="Okay">😐</button>
+                            <button type="button" class="mood-btn" data-mood="bad" title="Bad">☹️</button>
+                            <button type="button" class="mood-btn" data-mood="terrible" title="Terrible">😞</button>
+                        </div>
+                    </div>
+
+                    <!-- Energy Level Slider -->
+                    <div class="slider-container">
+                        <label>Energy Level <span class="slider-value" id="energy-value">5</span>/10</label>
+                        <input type="range" id="energy-slider" min="1" max="10" value="5" 
+                               oninput="document.getElementById('energy-value').textContent = this.value">
+                    </div>
+
+                    <!-- Pain Level Slider -->
+                    <div class="slider-container">
+                        <label>Pain Level <span class="slider-value" id="pain-value">5</span>/10</label>
+                        <input type="range" id="pain-slider" min="1" max="10" value="5" 
+                               oninput="document.getElementById('pain-value').textContent = this.value">
+                    </div>
+
+                    <!-- Side Effects -->
+                    <div class="form-group">
+                        <label>Any side effects today?</label>
+                        <div class="side-effects-grid" id="side-effects-grid">
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Nausea">
+                                <span>Nausea</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Headache">
+                                <span>Headache</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Dizziness">
+                                <span>Dizziness</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Fatigue">
+                                <span>Fatigue</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Insomnia">
+                                <span>Insomnia</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Stomach Pain">
+                                <span>Stomach Pain</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Anxiety">
+                                <span>Anxiety</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Dry Mouth">
+                                <span>Dry Mouth</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Loss of Appetite">
+                                <span>Loss of Appetite</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Increased Appetite">
+                                <span>Increased Appetite</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Constipation">
+                                <span>Constipation</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Diarrhea">
+                                <span>Diarrhea</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label for="journal-notes">Additional Notes</label>
+                        <textarea id="journal-notes" rows="4" 
+                                  placeholder="How did your medications work today? Any observations or concerns?"></textarea>
+                    </div>
+
+                    <!-- Save Button -->
+                    <button class="btn btn-primary" onclick="saveJournalEntry()">💾 Save Journal Entry</button>
+
+                    <div id="journal-message" style="margin-top: 20px;"></div>
+                </div>
+
+                <!-- Calendar View -->
+                <div class="card">
+                    <h2>📅 Journal Calendar</h2>
+                    <p style="margin-bottom: 20px; color: var(--text-secondary);">View your past journal entries</p>
+                    <div id="journal-calendar-container">
+                        <div id="journal-calendar" class="journal-calendar">
+                            <!-- Calendar will be generated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Past Entry Display -->
+                <div id="past-entry-display" style="display: none;">
+                    <div class="card">
+                        <h2>📖 Journal Entry</h2>
+                        <div class="journal-entry-display" id="entry-content">
+                            <!-- Selected entry will be displayed here -->
                         </div>
                     </div>
                 </div>

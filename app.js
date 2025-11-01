@@ -185,6 +185,8 @@ function switchTab(tabName) {
         loadMedications();
     } else if (tabName === 'analytics') {
         loadAnalytics();
+    } else if (tabName === 'journal') {
+        loadJournal();
     } else if (tabName === 'history') {
         loadHistory();
     } else if (tabName === 'export') {
@@ -1460,4 +1462,306 @@ async function loadTimeAnalysis() {
             `).join('')}
         </div>
     `;
+}
+
+// ================================
+// JOURNAL FUNCTIONS
+// ================================
+
+// Initialize journal tab
+function loadJournal() {
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('journal-date').value = today;
+    
+    // Setup mood button listeners
+    setupMoodButtons();
+    
+    // Load today's entry if it exists
+    loadJournalEntry();
+    
+    // Load calendar
+    updateJournalCalendar();
+}
+
+// Setup mood button click handlers
+function setupMoodButtons() {
+    const moodButtons = document.querySelectorAll('.mood-btn');
+    moodButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            moodButtons.forEach(b => b.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+}
+
+// Save journal entry
+async function saveJournalEntry() {
+    const date = document.getElementById('journal-date').value;
+    const mood = document.querySelector('.mood-btn.selected')?.getAttribute('data-mood');
+    const energy = parseInt(document.getElementById('energy-slider').value);
+    const pain = parseInt(document.getElementById('pain-slider').value);
+    const notes = document.getElementById('journal-notes').value;
+    
+    // Get checked side effects
+    const sideEffects = Array.from(document.querySelectorAll('.side-effect-checkbox input:checked'))
+        .map(cb => cb.value);
+    
+    if (!mood) {
+        showJournalMessage('Please select a mood', 'error');
+        return;
+    }
+    
+    try {
+        const { data: user } = await supabase.auth.getUser();
+        
+        // Check if entry exists for this date
+        const { data: existing } = await supabase
+            .from('journal_entries')
+            .select('id')
+            .eq('user_id', user.user.id)
+            .eq('entry_date', date)
+            .single();
+        
+        if (existing) {
+            // Update existing entry
+            const { error } = await supabase
+                .from('journal_entries')
+                .update({
+                    mood,
+                    energy_level: energy,
+                    pain_level: pain,
+                    side_effects: sideEffects,
+                    notes
+                })
+                .eq('id', existing.id);
+            
+            if (error) throw error;
+            showJournalMessage('Journal entry updated successfully!', 'success');
+        } else {
+            // Create new entry
+            const { error } = await supabase
+                .from('journal_entries')
+                .insert({
+                    user_id: user.user.id,
+                    entry_date: date,
+                    mood,
+                    energy_level: energy,
+                    pain_level: pain,
+                    side_effects: sideEffects,
+                    notes
+                });
+            
+            if (error) throw error;
+            showJournalMessage('Journal entry saved successfully!', 'success');
+        }
+        
+        // Refresh calendar
+        updateJournalCalendar();
+        
+    } catch (error) {
+        console.error('Error saving journal:', error);
+        showJournalMessage('Error saving journal entry', 'error');
+    }
+}
+
+// Load journal entry for selected date
+async function loadJournalEntry() {
+    const date = document.getElementById('journal-date').value;
+    
+    try {
+        const { data: user } = await supabase.auth.getUser();
+        
+        const { data: entry, error } = await supabase
+            .from('journal_entries')
+            .select('*')
+            .eq('user_id', user.user.id)
+            .eq('entry_date', date)
+            .single();
+        
+        if (entry) {
+            // Populate form with existing entry
+            document.getElementById('energy-slider').value = entry.energy_level;
+            document.getElementById('energy-value').textContent = entry.energy_level;
+            document.getElementById('pain-slider').value = entry.pain_level;
+            document.getElementById('pain-value').textContent = entry.pain_level;
+            document.getElementById('journal-notes').value = entry.notes || '';
+            
+            // Set mood
+            document.querySelectorAll('.mood-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.getAttribute('data-mood') === entry.mood) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            // Set side effects
+            document.querySelectorAll('.side-effect-checkbox input').forEach(cb => {
+                cb.checked = entry.side_effects?.includes(cb.value) || false;
+            });
+            
+        } else {
+            // Clear form for new entry
+            document.getElementById('energy-slider').value = 5;
+            document.getElementById('energy-value').textContent = '5';
+            document.getElementById('pain-slider').value = 5;
+            document.getElementById('pain-value').textContent = '5';
+            document.getElementById('journal-notes').value = '';
+            document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.side-effect-checkbox input').forEach(cb => cb.checked = false);
+        }
+        
+    } catch (error) {
+        // Entry doesn't exist, that's okay
+        console.log('No entry for this date');
+    }
+}
+
+// Update journal calendar
+async function updateJournalCalendar() {
+    try {
+        const { data: user } = await supabase.auth.getUser();
+        
+        // Get last 30 days of entries
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const { data: entries, error } = await supabase
+            .from('journal_entries')
+            .select('*')
+            .eq('user_id', user.user.id)
+            .gte('entry_date', thirtyDaysAgo.toISOString().split('T')[0])
+            .order('entry_date', { ascending: false });
+        
+        if (error) throw error;
+        
+        const calendar = document.getElementById('journal-calendar');
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (entries && entries.length > 0) {
+            calendar.innerHTML = entries.map(entry => {
+                const entryDate = new Date(entry.entry_date + 'T00:00:00');
+                const dayNumber = entryDate.getDate();
+                const mood = getMoodEmoji(entry.mood);
+                const isToday = entry.entry_date === today;
+                
+                return `
+                    <div class="calendar-day has-entry ${isToday ? 'today' : ''}" 
+                         onclick="displayJournalEntry('${entry.entry_date}')">
+                        <div class="calendar-day-number">${dayNumber}</div>
+                        <div class="calendar-day-mood">${mood}</div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            calendar.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <p>No journal entries yet. Start tracking your daily wellness!</p>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error loading calendar:', error);
+    }
+}
+
+// Display journal entry in detail view
+async function displayJournalEntry(date) {
+    try {
+        const { data: user } = await supabase.auth.getUser();
+        
+        const { data: entry, error } = await supabase
+            .from('journal_entries')
+            .select('*')
+            .eq('user_id', user.user.id)
+            .eq('entry_date', date)
+            .single();
+        
+        if (error) throw error;
+        
+        const displayDiv = document.getElementById('past-entry-display');
+        const contentDiv = document.getElementById('entry-content');
+        
+        const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        contentDiv.innerHTML = `
+            <h4>${formattedDate}</h4>
+            
+            <div class="journal-stats">
+                <div class="journal-stat">
+                    <div class="journal-stat-label">Mood</div>
+                    <div class="journal-stat-value">${getMoodEmoji(entry.mood)}</div>
+                </div>
+                <div class="journal-stat">
+                    <div class="journal-stat-label">Energy</div>
+                    <div class="journal-stat-value">${entry.energy_level}/10</div>
+                </div>
+                <div class="journal-stat">
+                    <div class="journal-stat-label">Pain</div>
+                    <div class="journal-stat-value">${entry.pain_level}/10</div>
+                </div>
+            </div>
+            
+            ${entry.side_effects && entry.side_effects.length > 0 ? `
+                <div style="margin: 20px 0;">
+                    <h4 style="margin-bottom: 10px;">Side Effects:</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${entry.side_effects.map(effect => `
+                            <span style="background: var(--item-bg); padding: 6px 12px; border-radius: 15px; font-size: 0.9em;">
+                                ${effect}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${entry.notes ? `
+                <div style="margin: 20px 0;">
+                    <h4 style="margin-bottom: 10px;">Notes:</h4>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">${entry.notes}</p>
+                </div>
+            ` : ''}
+            
+            <button class="btn btn-secondary" onclick="document.getElementById('past-entry-display').style.display='none'">
+                Close
+            </button>
+        `;
+        
+        displayDiv.style.display = 'block';
+        displayDiv.scrollIntoView({ behavior: 'smooth' });
+        
+    } catch (error) {
+        console.error('Error displaying entry:', error);
+    }
+}
+
+// Get mood emoji
+function getMoodEmoji(mood) {
+    const moodMap = {
+        'great': '😄',
+        'good': '🙂',
+        'okay': '😐',
+        'bad': '☹️',
+        'terrible': '😞'
+    };
+    return moodMap[mood] || '😐';
+}
+
+// Show journal message
+function showJournalMessage(message, type) {
+    const messageDiv = document.getElementById('journal-message');
+    messageDiv.innerHTML = `
+        <div class="alert alert-${type === 'success' ? 'success' : 'error'}">
+            ${message}
+        </div>
+    `;
+    setTimeout(() => {
+        messageDiv.innerHTML = '';
+    }, 3000);
 }
