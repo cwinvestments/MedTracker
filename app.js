@@ -1468,6 +1468,8 @@ async function loadTimeAnalysis() {
 // JOURNAL FUNCTIONS
 // ================================
 
+let selectedSpoons = null;
+
 // Initialize journal tab
 function loadJournal() {
     // Set today's date as default
@@ -1495,12 +1497,50 @@ function setupMoodButtons() {
     });
 }
 
+// Select spoons (0-12 scale)
+function selectSpoons(count) {
+    selectedSpoons = count;
+    
+    // Update button styles
+    const spoonButtons = document.querySelectorAll('.spoon-btn');
+    spoonButtons.forEach(btn => {
+        if (parseInt(btn.getAttribute('data-spoons')) === count) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+    
+    // Update status message based on spoon theory
+    const statusDiv = document.getElementById('spoon-status');
+    let status = '';
+    let emoji = '';
+    
+    if (count <= 3) {
+        status = 'Crisis Mode - Be gentle with yourself';
+        emoji = '🔴';
+    } else if (count <= 6) {
+        status = 'Low Energy - Prioritize essential tasks';
+        emoji = '🟡';
+    } else if (count <= 9) {
+        status = 'Moderate Energy - Pace yourself';
+        emoji = '🟢';
+    } else {
+        status = 'Good Energy - Make the most of today!';
+        emoji = '⭐';
+    }
+    
+    statusDiv.innerHTML = `${emoji} <strong>${count} Spoons</strong><br>${status}`;
+}
+
 // Save journal entry
 async function saveJournalEntry() {
     const date = document.getElementById('journal-date').value;
     const mood = document.querySelector('.mood-btn.selected')?.getAttribute('data-mood');
-    const energy = parseInt(document.getElementById('energy-slider').value);
+    const spoons = selectedSpoons;
     const pain = parseInt(document.getElementById('pain-slider').value);
+    const fatigue = parseInt(document.getElementById('fatigue-slider').value);
+    const brainfog = parseInt(document.getElementById('brainfog-slider').value);
     const notes = document.getElementById('journal-notes').value;
     
     // Get checked side effects
@@ -1509,6 +1549,11 @@ async function saveJournalEntry() {
     
     if (!mood) {
         showJournalMessage('Please select a mood', 'error');
+        return;
+    }
+    
+    if (spoons === null) {
+        showJournalMessage('Please select your spoon count for today', 'error');
         return;
     }
     
@@ -1529,8 +1574,10 @@ async function saveJournalEntry() {
                 .from('journal_entries')
                 .update({
                     mood,
-                    energy_level: energy,
+                    energy_level: spoons,
                     pain_level: pain,
+                    fatigue_level: fatigue,
+                    brainfog_level: brainfog,
                     side_effects: sideEffects,
                     notes
                 })
@@ -1546,8 +1593,10 @@ async function saveJournalEntry() {
                     user_id: user.user.id,
                     entry_date: date,
                     mood,
-                    energy_level: energy,
+                    energy_level: spoons,
                     pain_level: pain,
+                    fatigue_level: fatigue,
+                    brainfog_level: brainfog,
                     side_effects: sideEffects,
                     notes
                 });
@@ -1581,10 +1630,18 @@ async function loadJournalEntry() {
         
         if (entry) {
             // Populate form with existing entry
-            document.getElementById('energy-slider').value = entry.energy_level;
-            document.getElementById('energy-value').textContent = entry.energy_level;
-            document.getElementById('pain-slider').value = entry.pain_level;
-            document.getElementById('pain-value').textContent = entry.pain_level;
+            selectedSpoons = entry.energy_level;
+            selectSpoons(entry.energy_level);
+            
+            document.getElementById('pain-slider').value = entry.pain_level || 0;
+            document.getElementById('pain-value').textContent = entry.pain_level || 0;
+            
+            document.getElementById('fatigue-slider').value = entry.fatigue_level || 0;
+            document.getElementById('fatigue-value').textContent = entry.fatigue_level || 0;
+            
+            document.getElementById('brainfog-slider').value = entry.brainfog_level || 0;
+            document.getElementById('brainfog-value').textContent = entry.brainfog_level || 0;
+            
             document.getElementById('journal-notes').value = entry.notes || '';
             
             // Set mood
@@ -1602,17 +1659,23 @@ async function loadJournalEntry() {
             
         } else {
             // Clear form for new entry
-            document.getElementById('energy-slider').value = 5;
-            document.getElementById('energy-value').textContent = '5';
-            document.getElementById('pain-slider').value = 5;
-            document.getElementById('pain-value').textContent = '5';
+            selectedSpoons = null;
+            document.getElementById('spoon-status').innerHTML = 'Select your spoons for today';
+            document.querySelectorAll('.spoon-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            document.getElementById('pain-slider').value = 0;
+            document.getElementById('pain-value').textContent = '0';
+            document.getElementById('fatigue-slider').value = 0;
+            document.getElementById('fatigue-value').textContent = '0';
+            document.getElementById('brainfog-slider').value = 0;
+            document.getElementById('brainfog-value').textContent = '0';
             document.getElementById('journal-notes').value = '';
             document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('selected'));
             document.querySelectorAll('.side-effect-checkbox input').forEach(cb => cb.checked = false);
         }
         
     } catch (error) {
-        // Entry doesn't exist, that's okay
+        // Entry doesn't exist, that's okay - form is already cleared
         console.log('No entry for this date');
     }
 }
@@ -1643,6 +1706,7 @@ async function updateJournalCalendar() {
                 const entryDate = new Date(entry.entry_date + 'T00:00:00');
                 const dayNumber = entryDate.getDate();
                 const mood = getMoodEmoji(entry.mood);
+                const spoons = entry.energy_level || 0;
                 const isToday = entry.entry_date === today;
                 
                 return `
@@ -1650,6 +1714,7 @@ async function updateJournalCalendar() {
                          onclick="displayJournalEntry('${entry.entry_date}')">
                         <div class="calendar-day-number">${dayNumber}</div>
                         <div class="calendar-day-mood">${mood}</div>
+                        <div style="font-size: 0.8em; margin-top: 3px;">${spoons} 🥄</div>
                     </div>
                 `;
             }).join('');
@@ -1690,6 +1755,14 @@ async function displayJournalEntry(date) {
             day: 'numeric'
         });
         
+        // Get spoon status
+        const spoons = entry.energy_level || 0;
+        let spoonStatus = '';
+        if (spoons <= 3) spoonStatus = 'Crisis Mode';
+        else if (spoons <= 6) spoonStatus = 'Low Energy';
+        else if (spoons <= 9) spoonStatus = 'Moderate Energy';
+        else spoonStatus = 'Good Energy';
+        
         contentDiv.innerHTML = `
             <h4>${formattedDate}</h4>
             
@@ -1699,12 +1772,24 @@ async function displayJournalEntry(date) {
                     <div class="journal-stat-value">${getMoodEmoji(entry.mood)}</div>
                 </div>
                 <div class="journal-stat">
-                    <div class="journal-stat-label">Energy</div>
-                    <div class="journal-stat-value">${entry.energy_level}/10</div>
+                    <div class="journal-stat-label">Spoons</div>
+                    <div class="journal-stat-value">${spoons} 🥄</div>
+                    <div style="font-size: 0.8em; opacity: 0.9; margin-top: 5px;">${spoonStatus}</div>
                 </div>
-                <div class="journal-stat">
-                    <div class="journal-stat-label">Pain</div>
-                    <div class="journal-stat-value">${entry.pain_level}/10</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+                <div style="background: var(--item-bg); padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Pain</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: var(--text-primary);">${entry.pain_level || 0}/10</div>
+                </div>
+                <div style="background: var(--item-bg); padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Fatigue</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: var(--text-primary);">${entry.fatigue_level || 0}/10</div>
+                </div>
+                <div style="background: var(--item-bg); padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Brain Fog</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: var(--text-primary);">${entry.brainfog_level || 0}/10</div>
                 </div>
             </div>
             

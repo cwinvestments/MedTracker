@@ -771,6 +771,21 @@
             font-size: 2em;
             font-weight: bold;
         }
+
+        .spoon-btn {
+            transition: all 0.3s ease;
+        }
+
+        .spoon-btn:hover {
+            transform: scale(1.05);
+            border-color: #FFD700 !important;
+        }
+
+        .spoon-btn.selected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            border-color: #10b981 !important;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -1128,7 +1143,7 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
             <div id="journal-tab" class="tab-content">
                 <div class="card">
                     <h2>📝 Daily Journal</h2>
-                    <p style="margin-bottom: 20px; color: var(--text-secondary);">Track your daily mood, energy, pain levels, and side effects</p>
+                    <p style="margin-bottom: 20px; color: var(--text-secondary);">Track your daily spoons, symptoms, and wellness using Spoon Theory</p>
                     
                     <!-- Date Selector -->
                     <div class="form-group">
@@ -1148,18 +1163,48 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                         </div>
                     </div>
 
-                    <!-- Energy Level Slider -->
-                    <div class="slider-container">
-                        <label>Energy Level <span class="slider-value" id="energy-value">5</span>/10</label>
-                        <input type="range" id="energy-slider" min="1" max="10" value="5" 
-                               oninput="document.getElementById('energy-value').textContent = this.value">
+                    <!-- Spoons Available (0-12 scale) -->
+                    <div class="form-group" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0;">
+                        <label style="color: white; font-size: 1.2em; display: block; margin-bottom: 15px;">🥄 Spoons Available Today</label>
+                        <div style="display: flex; gap: 5px; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap;">
+                            <button type="button" onclick="selectSpoons(0)" class="spoon-btn" data-spoons="0" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">0</button>
+                            <button type="button" onclick="selectSpoons(1)" class="spoon-btn" data-spoons="1" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">1</button>
+                            <button type="button" onclick="selectSpoons(2)" class="spoon-btn" data-spoons="2" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">2</button>
+                            <button type="button" onclick="selectSpoons(3)" class="spoon-btn" data-spoons="3" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">3</button>
+                            <button type="button" onclick="selectSpoons(4)" class="spoon-btn" data-spoons="4" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">4</button>
+                            <button type="button" onclick="selectSpoons(5)" class="spoon-btn" data-spoons="5" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">5</button>
+                            <button type="button" onclick="selectSpoons(6)" class="spoon-btn" data-spoons="6" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">6</button>
+                            <button type="button" onclick="selectSpoons(7)" class="spoon-btn" data-spoons="7" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">7</button>
+                            <button type="button" onclick="selectSpoons(8)" class="spoon-btn" data-spoons="8" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">8</button>
+                            <button type="button" onclick="selectSpoons(9)" class="spoon-btn" data-spoons="9" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">9</button>
+                            <button type="button" onclick="selectSpoons(10)" class="spoon-btn" data-spoons="10" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">10</button>
+                            <button type="button" onclick="selectSpoons(11)" class="spoon-btn" data-spoons="11" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">11</button>
+                            <button type="button" onclick="selectSpoons(12)" class="spoon-btn" data-spoons="12" style="flex: 1; min-width: 45px; padding: 10px 5px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 14px; cursor: pointer; font-weight: 600;">12</button>
+                        </div>
+                        <div id="spoon-status" style="text-align: center; color: white; font-size: 1.1em; font-weight: 600; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 8px;">
+                            Select your spoons for today
+                        </div>
                     </div>
 
-                    <!-- Pain Level Slider -->
+                    <!-- Pain Level Slider (0-10) -->
                     <div class="slider-container">
-                        <label>Pain Level <span class="slider-value" id="pain-value">5</span>/10</label>
-                        <input type="range" id="pain-slider" min="1" max="10" value="5" 
+                        <label>🔴 Pain Level <span class="slider-value" id="pain-value">0</span>/10</label>
+                        <input type="range" id="pain-slider" min="0" max="10" value="0" 
                                oninput="document.getElementById('pain-value').textContent = this.value">
+                    </div>
+
+                    <!-- Fatigue Level Slider (0-10) -->
+                    <div class="slider-container">
+                        <label>😴 Fatigue Level <span class="slider-value" id="fatigue-value">0</span>/10</label>
+                        <input type="range" id="fatigue-slider" min="0" max="10" value="0" 
+                               oninput="document.getElementById('fatigue-value').textContent = this.value">
+                    </div>
+
+                    <!-- Brain Fog Slider (0-10) -->
+                    <div class="slider-container">
+                        <label>🌫️ Brain Fog Level <span class="slider-value" id="brainfog-value">0</span>/10</label>
+                        <input type="range" id="brainfog-slider" min="0" max="10" value="0" 
+                               oninput="document.getElementById('brainfog-value').textContent = this.value">
                     </div>
 
                     <!-- Side Effects -->
@@ -1177,10 +1222,6 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                             <label class="side-effect-checkbox">
                                 <input type="checkbox" value="Dizziness">
                                 <span>Dizziness</span>
-                            </label>
-                            <label class="side-effect-checkbox">
-                                <input type="checkbox" value="Fatigue">
-                                <span>Fatigue</span>
                             </label>
                             <label class="side-effect-checkbox">
                                 <input type="checkbox" value="Insomnia">
@@ -1213,6 +1254,10 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                             <label class="side-effect-checkbox">
                                 <input type="checkbox" value="Diarrhea">
                                 <span>Diarrhea</span>
+                            </label>
+                            <label class="side-effect-checkbox">
+                                <input type="checkbox" value="Other">
+                                <span>Other</span>
                             </label>
                         </div>
                     </div>
