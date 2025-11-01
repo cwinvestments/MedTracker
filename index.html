@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedTracker - Medication Reminder & Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #1e3c72 0%, #7e22ce 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #7e22ce;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3c72 0%, #7e22ce 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(126, 34, 206, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .med-list {
+            list-style: none;
+        }
+
+        .med-item {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #7e22ce;
+        }
+
+        .med-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .med-details {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .med-details strong {
+            color: #333;
+        }
+
+        .med-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .med-actions button {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .schedule-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .schedule-item.taken {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+
+        .schedule-item.missed {
+            border-color: #f44336;
+            background: #fef1f0;
+        }
+
+        .schedule-time {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #7e22ce;
+        }
+
+        .schedule-med-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .schedule-dosage {
+            color: #666;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-taken {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-missed {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .card {
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+
+            .med-item {
+                page-break-inside: avoid;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .schedule-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        .notification-status {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .adherence-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1e3c72 0%, #7e22ce 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💊 MedTracker</h1>
+            <p>Your Personal Medication Reminder & Tracker</p>
+        </div>
+
+        <div class="card no-print">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('today')">Today's Schedule</button>
+                <button class="tab-btn" onclick="switchTab('medications')">My Medications</button>
+                <button class="tab-btn" onclick="switchTab('add')">Add Medication</button>
+                <button class="tab-btn" onclick="switchTab('history')">History</button>
+                <button class="tab-btn" onclick="switchTab('export')">Export/Print</button>
+            </div>
+        </div>
+
+        <!-- Today's Schedule Tab -->
+        <div id="today-tab" class="tab-content active">
+            <div class="card">
+                <h2>Today's Medication Schedule</h2>
+                <div id="notification-status" class="notification-status" style="display: none;">
+                    <strong>⚠️ Notifications Disabled</strong>
+                    <p>Enable notifications to receive reminders for your medications.</p>
+                    <button class="btn btn-primary" onclick="requestNotificationPermission()">Enable Notifications</button>
+                </div>
+                <div id="today-schedule">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📅</div>
+                        <h3>No medications scheduled for today</h3>
+                        <p>Add medications to see your daily schedule</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Adherence Statistics</h2>
+                <div class="adherence-stats" id="adherence-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-today">0</div>
+                        <div class="stat-label">Taken Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-week">0%</div>
+                        <div class="stat-label">7-Day Adherence</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="stat-streak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medications List Tab -->
+        <div id="medications-tab" class="tab-content">
+            <div class="card">
+                <h2>My Medications</h2>
+                <ul class="med-list" id="med-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💊</div>
+                        <h3>No medications added yet</h3>
+                        <p>Start by adding your first medication</p>
+                    </div>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Add Medication Tab -->
+        <div id="add-tab" class="tab-content">
+            <div class="card">
+                <h2>Add New Medication</h2>
+                
+                <div class="tabs" style="margin-bottom: 20px;">
+                    <button class="tab-btn active" onclick="switchAddMethod('form')">Add One</button>
+                    <button class="tab-btn" onclick="switchAddMethod('bulk')">Bulk Paste</button>
+                </div>
+
+                <!-- Single Add Form -->
+                <div id="add-form" class="add-method">
+                    <form id="medication-form" onsubmit="addMedication(event)">
+                        <div class="form-group">
+                            <label for="med-name">Medication Name *</label>
+                            <input type="text" id="med-name" required placeholder="e.g., Aspirin">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="med-dosage">Dosage *</label>
+                            <input type="text" id="med-dosage" required placeholder="e.g., 500mg">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="med-frequency">Frequency *</label>
+                            <select id="med-frequency" required onchange="updateTimeInputs()">
+                                <option value="">Select frequency...</option>
+                                <option value="once">Once daily</option>
+                                <option value="twice">Twice daily</option>
+                                <option value="three">Three times daily</option>
+                                <option value="four">Four times daily</option>
+                                <option value="custom">Custom schedule</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="times-container">
+                            <label>Times of Day *</label>
+                            <div id="time-inputs"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="med-doctor">Prescribing Doctor (optional)</label>
+                            <input type="text" id="med-doctor" placeholder="e.g., Dr. Smith">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="med-purpose">Purpose/Condition (optional)</label>
+                            <input type="text" id="med-purpose" placeholder="e.g., Blood pressure">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="med-pharmacy">Pharmacy Info (optional)</label>
+                            <input type="text" id="med-pharmacy" placeholder="e.g., CVS #1234">
+                        </div>
+
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">Add Medication</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Bulk Add -->
+                <div id="add-bulk" class="add-method" style="display: none;">
+                    <div class="form-group">
+                        <label for="bulk-paste">Paste Medication List</label>
+                        <textarea id="bulk-paste" placeholder="Paste your medication list here. Format:
+Medication Name | Dosage | Frequency | Times (comma-separated)
+
+Example:
+Aspirin | 500mg | Once daily | 8:00 AM
+Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="bulkAddMedications()">Import Medications</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="card">
+                <h2>Medication History</h2>
+                <div id="history-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>No history yet</h3>
+                        <p>Your medication tracking history will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export/Print Tab -->
+        <div id="export-tab" class="tab-content">
+            <div class="card">
+                <h2>Export & Print Options</h2>
+                <p style="margin-bottom: 20px;">Generate a medication list for doctor visits or personal records.</p>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="printMedList()">🖨️ Print List</button>
+                    <button class="btn btn-primary" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                    <button class="btn btn-primary" onclick="exportToPDF()">📄 Export as PDF</button>
+                </div>
+
+                <div id="print-preview" style="margin-top: 30px;">
+                    <h3>Preview:</h3>
+                    <div id="preview-content" style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
+                        <!-- Preview will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
