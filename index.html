@@ -786,6 +786,40 @@
             border-color: #10b981 !important;
             transform: scale(1.1);
         }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h2,
+        .modal-content h3,
+        .modal-content h4 {
+            color: var(--text-primary);
+        }
+
+        .modal-content p,
+        .modal-content li {
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -1142,7 +1176,12 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
             <!-- Journal Tab -->
             <div id="journal-tab" class="tab-content">
                 <div class="card">
-                    <h2>📝 Daily Journal</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h2>📝 Daily Journal</h2>
+                        <button onclick="showJournalHelp()" class="btn btn-secondary" style="padding: 8px 16px;">
+                            ❓ What is Spoon Theory?
+                        </button>
+                    </div>
                     <p style="margin-bottom: 20px; color: var(--text-secondary);">Track your daily spoons, symptoms, and wellness using Spoon Theory</p>
                     
                     <!-- Date Selector -->
@@ -1187,6 +1226,7 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                     <!-- Pain Level Slider (0-10) -->
                     <div class="slider-container">
                         <label>🔴 Pain Level <span class="slider-value" id="pain-value">0</span>/10</label>
+                        <p style="font-size: 0.85em; color: var(--text-secondary); margin: 5px 0 10px 0;">How much physical pain are you experiencing right now?</p>
                         <input type="range" id="pain-slider" min="0" max="10" value="0" 
                                oninput="document.getElementById('pain-value').textContent = this.value">
                     </div>
@@ -1194,6 +1234,7 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                     <!-- Fatigue Level Slider (0-10) -->
                     <div class="slider-container">
                         <label>😴 Fatigue Level <span class="slider-value" id="fatigue-value">0</span>/10</label>
+                        <p style="font-size: 0.85em; color: var(--text-secondary); margin: 5px 0 10px 0;">How tired or exhausted do you feel physically and mentally?</p>
                         <input type="range" id="fatigue-slider" min="0" max="10" value="0" 
                                oninput="document.getElementById('fatigue-value').textContent = this.value">
                     </div>
@@ -1201,6 +1242,7 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                     <!-- Brain Fog Slider (0-10) -->
                     <div class="slider-container">
                         <label>🌫️ Brain Fog Level <span class="slider-value" id="brainfog-value">0</span>/10</label>
+                        <p style="font-size: 0.85em; color: var(--text-secondary); margin: 5px 0 10px 0;">How clear is your thinking and focus today? (0=crystal clear, 10=can't focus at all)</p>
                         <input type="range" id="brainfog-slider" min="0" max="10" value="0" 
                                oninput="document.getElementById('brainfog-value').textContent = this.value">
                     </div>
@@ -1327,6 +1369,79 @@ Metformin | 850mg | Twice daily | 8:00 AM, 8:00 PM"></textarea>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Journal Help Modal -->
+    <div id="journal-help-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">🥄 Understanding Spoon Theory</h2>
+                <button onclick="closeJournalHelp()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary);">&times;</button>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: white;">What is Spoon Theory?</h3>
+                <p style="line-height: 1.6; margin: 0;">
+                    Spoon Theory is a metaphor created by <strong>Christine Miserandino</strong> to explain the limited energy available to people living with chronic illness. 
+                    Each "spoon" represents a unit of energy. You start each day with a limited number of spoons, and every activity costs spoons. 
+                    When you're out of spoons, you must rest.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3>🥄 How to Use the Spoon Scale (0-10)</h3>
+                <div style="display: grid; gap: 12px; margin-top: 15px;">
+                    <div style="padding: 12px; background: var(--item-bg); border-radius: 8px; border-left: 4px solid #ef4444;">
+                        <strong style="color: #ef4444;">0-2 Spoons - Crisis Mode</strong>
+                        <p style="margin: 5px 0 0 0; color: var(--text-secondary);">Severe fatigue. Only essential activities possible. Be very gentle with yourself.</p>
+                    </div>
+                    <div style="padding: 12px; background: var(--item-bg); border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <strong style="color: #f59e0b;">3-5 Spoons - Low Energy</strong>
+                        <p style="margin: 5px 0 0 0; color: var(--text-secondary);">Limited energy. Prioritize only essential tasks. Rest between activities.</p>
+                    </div>
+                    <div style="padding: 12px; background: var(--item-bg); border-radius: 8px; border-left: 4px solid #10b981;">
+                        <strong style="color: #10b981;">6-7 Spoons - Moderate Energy</strong>
+                        <p style="margin: 5px 0 0 0; color: var(--text-secondary);">Manageable energy. Pace yourself throughout the day. Don't overdo it.</p>
+                    </div>
+                    <div style="padding: 12px; background: var(--item-bg); border-radius: 8px; border-left: 4px solid #7e22ce;">
+                        <strong style="color: #7e22ce;">8-10 Spoons - Good Energy</strong>
+                        <p style="margin: 5px 0 0 0; color: var(--text-secondary);">Feeling good! Make the most of today, but still listen to your body.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3>📊 Symptom Tracking (0-10 Scale)</h3>
+                <div style="background: var(--item-bg); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <p style="margin: 0 0 12px 0;"><strong>🔴 Pain Level:</strong> How much physical pain are you experiencing? (0=none, 10=severe)</p>
+                    <p style="margin: 0 0 12px 0;"><strong>😴 Fatigue Level:</strong> How tired or exhausted do you feel? (0=energetic, 10=completely drained)</p>
+                    <p style="margin: 0 0 0 0;"><strong>🌫️ Brain Fog:</strong> How much mental clarity do you have? (0=clear thinking, 10=can't focus at all)</p>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3>💡 Tips for Tracking</h3>
+                <ul style="line-height: 1.8; color: var(--text-secondary); padding-left: 20px;">
+                    <li><strong>Track daily:</strong> Log your journal entry at the same time each day (morning works well)</li>
+                    <li><strong>Be honest:</strong> Rate how you truly feel, not how you wish you felt</li>
+                    <li><strong>Look for patterns:</strong> Over time, you'll see which medications or activities affect your spoons</li>
+                    <li><strong>Share with doctors:</strong> Use the calendar view to show your healthcare provider your symptom patterns</li>
+                    <li><strong>Adjust plans:</strong> Use your spoon count to decide what you can realistically do each day</li>
+                </ul>
+            </div>
+
+            <div style="background: var(--item-bg); padding: 15px; border-radius: 8px;">
+                <h4 style="margin-top: 0;">❤️ Remember</h4>
+                <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">
+                    You know your body best. Spoon Theory is a tool to help you communicate your energy levels and make informed decisions about your daily activities. 
+                    There's no "right" number of spoons - every chronic illness warrior's experience is unique.
+                </p>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="closeJournalHelp()" class="btn btn-primary">Got It!</button>
             </div>
         </div>
     </div>

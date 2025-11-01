@@ -1850,3 +1850,21 @@ function showJournalMessage(message, type) {
         messageDiv.innerHTML = '';
     }, 3000);
 }
+
+// Show journal help modal
+function showJournalHelp() {
+    document.getElementById('journal-help-modal').style.display = 'flex';
+}
+
+// Close journal help modal
+function closeJournalHelp() {
+    document.getElementById('journal-help-modal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('journal-help-modal');
+    if (event.target === modal) {
+        closeJournalHelp();
+    }
+});
