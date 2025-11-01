@@ -314,6 +314,35 @@
             color: white;
         }
 
+        .category-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .category-prescribed {
+            background: #7e22ce;
+            color: white;
+        }
+
+        .category-supplements {
+            background: #10b981;
+            color: white;
+        }
+
+        .category-otc {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .category-injections {
+            background: #ef4444;
+            color: white;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -569,6 +598,17 @@
                             <div class="form-group">
                                 <label for="med-dosage">Dosage *</label>
                                 <input type="text" id="med-dosage" required placeholder="e.g., 500mg">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="med-category">Category *</label>
+                                <select id="med-category" required>
+                                    <option value="">Select category...</option>
+                                    <option value="prescribed">💊 Prescribed Medication</option>
+                                    <option value="supplements">🌿 Vitamins & Supplements</option>
+                                    <option value="otc">🏥 Over-the-Counter (OTC)</option>
+                                    <option value="injections">💉 Injections</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
