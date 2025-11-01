@@ -183,6 +183,8 @@ function switchTab(tabName) {
         updateAdherenceStats();
     } else if (tabName === 'medications') {
         loadMedications();
+    } else if (tabName === 'analytics') {
+        loadAnalytics();
     } else if (tabName === 'history') {
         loadHistory();
     } else if (tabName === 'export') {
@@ -1003,4 +1005,459 @@ function formatDate(dateStr) {
     if (dateStr === yesterdayStr) return 'Yesterday';
     
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// Analytics Functions
+let adherenceTrendChart = null;
+let categoryDistributionChart = null;
+let costByCategoryChart = null;
+
+async function loadAnalytics() {
+    await loadRefillAlerts();
+    await loadCostAnalytics();
+    await loadAdherenceTrend(30);
+    await loadCategoryDistribution();
+    await loadTimeAnalysis();
+}
+
+// Load refill alerts
+async function loadRefillAlerts() {
+    const { data: medications } = await supabase
+        .from('medications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .not('pills_remaining', 'is', null);
+    
+    const container = document.getElementById('refill-alerts');
+    
+    if (!medications || medications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">💊</div>
+                <h3>No refill tracking</h3>
+                <p>Add pill counts to medications to track refills</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const today = new Date();
+    const alerts = [];
+    
+    medications.forEach(med => {
+        if (med.pills_remaining !== null) {
+            let alertLevel = 'ok';
+            let message = '';
+            
+            if (med.pills_remaining <= 5) {
+                alertLevel = 'critical';
+                message = `CRITICAL: Only ${med.pills_remaining} pills remaining!`;
+            } else if (med.pills_remaining <= 15) {
+                alertLevel = 'warning';
+                message = `Low: ${med.pills_remaining} pills remaining`;
+            }
+            
+            if (med.refill_by_date) {
+                const refillDate = new Date(med.refill_by_date);
+                const daysUntil = Math.ceil((refillDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (daysUntil <= 3 && daysUntil >= 0) {
+                    alertLevel = alertLevel === 'critical' ? 'critical' : 'warning';
+                    message += ` - Refill in ${daysUntil} days!`;
+                } else if (daysUntil < 0) {
+                    alertLevel = 'critical';
+                    message = `OVERDUE: Refill was ${Math.abs(daysUntil)} days ago!`;
+                }
+            }
+            
+            if (alertLevel !== 'ok') {
+                alerts.push({
+                    med: med,
+                    level: alertLevel,
+                    message: message
+                });
+            }
+        }
+    });
+    
+    if (alerts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">✅</div>
+                <h3>All good!</h3>
+                <p>No refills needed at this time</p>
+            </div>
+        `;
+        return;
+    }
+    
+    alerts.sort((a, b) => {
+        if (a.level === 'critical' && b.level !== 'critical') return -1;
+        if (a.level !== 'critical' && b.level === 'critical') return 1;
+        return 0;
+    });
+    
+    container.innerHTML = alerts.map(alert => `
+        <div class="refill-${alert.level}" style="padding: 15px; margin-bottom: 10px; border-radius: 8px;">
+            <strong>${alert.med.name}</strong> (${alert.med.dosage})<br>
+            ${alert.message}
+        </div>
+    `).join('');
+}
+
+// Load cost analytics
+async function loadCostAnalytics() {
+    const { data: medications } = await supabase
+        .from('medications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .not('cost_per_refill', 'is', null);
+    
+    if (!medications || medications.length === 0) {
+        document.getElementById('total-monthly-cost').textContent = '$0';
+        document.getElementById('total-yearly-cost').textContent = '$0';
+        document.getElementById('most-expensive').textContent = '--';
+        return;
+    }
+    
+    // Calculate estimated monthly and yearly costs
+    let totalMonthly = 0;
+    let mostExpensive = { name: '--', cost: 0 };
+    const categoryTotals = {
+        prescribed: 0,
+        supplements: 0,
+        otc: 0,
+        injections: 0
+    };
+    
+    medications.forEach(med => {
+        const cost = parseFloat(med.cost_per_refill) || 0;
+        
+        // Estimate monthly cost (assuming 30-day supply on average)
+        const monthlyForThis = cost * (30 / (med.total_pills || 30));
+        totalMonthly += monthlyForThis;
+        
+        if (cost > mostExpensive.cost) {
+            mostExpensive = { name: med.name, cost: cost };
+        }
+        
+        const category = med.category || 'prescribed';
+        if (categoryTotals[category] !== undefined) {
+            categoryTotals[category] += cost;
+        }
+    });
+    
+    document.getElementById('total-monthly-cost').textContent = '$' + totalMonthly.toFixed(2);
+    document.getElementById('total-yearly-cost').textContent = '$' + (totalMonthly * 12).toFixed(2);
+    document.getElementById('most-expensive').textContent = mostExpensive.name;
+    
+    // Create cost by category chart
+    const ctx = document.getElementById('cost-by-category-chart');
+    if (ctx) {
+        if (costByCategoryChart) {
+            costByCategoryChart.destroy();
+        }
+        
+        const hasData = Object.values(categoryTotals).some(v => v > 0);
+        if (hasData) {
+            costByCategoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['💊 Prescribed', '🌿 Supplements', '🏥 OTC', '💉 Injections'],
+                    datasets: [{
+                        data: [
+                            categoryTotals.prescribed,
+                            categoryTotals.supplements,
+                            categoryTotals.otc,
+                            categoryTotals.injections
+                        ],
+                        backgroundColor: [
+                            '#7e22ce',
+                            '#10b981',
+                            '#3b82f6',
+                            '#ef4444'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim()
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': $' + context.parsed.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+}
+
+// Load adherence trend
+async function loadAdherenceTrend(days = 30) {
+    // Update button states
+    const buttons = document.querySelectorAll('#analytics-tab .btn-secondary');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.includes(days + ' Days')) {
+            btn.classList.add('active');
+        }
+    });
+    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const { data: logs } = await supabase
+        .from('medication_logs')
+        .select('scheduled_date, status')
+        .eq('user_id', currentUser.id)
+        .gte('scheduled_date', startDate.toISOString().split('T')[0])
+        .order('scheduled_date', { ascending: true });
+    
+    const ctx = document.getElementById('adherence-trend-chart');
+    if (!ctx) return;
+    
+    // Aggregate by date
+    const dateMap = {};
+    if (logs) {
+        logs.forEach(log => {
+            if (!dateMap[log.scheduled_date]) {
+                dateMap[log.scheduled_date] = { taken: 0, missed: 0, total: 0 };
+            }
+            dateMap[log.scheduled_date].total++;
+            if (log.status === 'taken') {
+                dateMap[log.scheduled_date].taken++;
+            } else if (log.status === 'missed') {
+                dateMap[log.scheduled_date].missed++;
+            }
+        });
+    }
+    
+    // Generate labels and data
+    const labels = [];
+    const adherenceData = [];
+    
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        
+        if (dateMap[dateStr]) {
+            const percentage = dateMap[dateStr].total > 0 
+                ? (dateMap[dateStr].taken / dateMap[dateStr].total) * 100 
+                : 0;
+            adherenceData.push(percentage.toFixed(1));
+        } else {
+            adherenceData.push(null);
+        }
+    }
+    
+    if (adherenceTrendChart) {
+        adherenceTrendChart.destroy();
+    }
+    
+    adherenceTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Adherence %',
+                data: adherenceData,
+                borderColor: '#7e22ce',
+                backgroundColor: 'rgba(126, 34, 206, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y !== null ? context.parsed.y + '%' : 'No data';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim()
+                    },
+                    grid: {
+                        color: getComputedStyle(document.body).getPropertyValue('--border-color').trim()
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim()
+                    },
+                    grid: {
+                        color: getComputedStyle(document.body).getPropertyValue('--border-color').trim()
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Load category distribution
+async function loadCategoryDistribution() {
+    const { data: medications } = await supabase
+        .from('medications')
+        .select('category')
+        .eq('user_id', currentUser.id);
+    
+    const ctx = document.getElementById('category-distribution-chart');
+    if (!ctx) return;
+    
+    if (!medications || medications.length === 0) {
+        return;
+    }
+    
+    const counts = {
+        prescribed: 0,
+        supplements: 0,
+        otc: 0,
+        injections: 0
+    };
+    
+    medications.forEach(med => {
+        const category = med.category || 'prescribed';
+        if (counts[category] !== undefined) {
+            counts[category]++;
+        }
+    });
+    
+    if (categoryDistributionChart) {
+        categoryDistributionChart.destroy();
+    }
+    
+    categoryDistributionChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['💊 Prescribed', '🌿 Supplements', '🏥 OTC', '💉 Injections'],
+            datasets: [{
+                data: [
+                    counts.prescribed,
+                    counts.supplements,
+                    counts.otc,
+                    counts.injections
+                ],
+                backgroundColor: [
+                    '#7e22ce',
+                    '#10b981',
+                    '#3b82f6',
+                    '#ef4444'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim()
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Load time analysis
+async function loadTimeAnalysis() {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { data: logs } = await supabase
+        .from('medication_logs')
+        .select('scheduled_time, status')
+        .eq('user_id', currentUser.id)
+        .gte('scheduled_date', sevenDaysAgo.toISOString().split('T')[0]);
+    
+    const container = document.getElementById('time-analysis');
+    
+    if (!logs || logs.length < 10) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⏰</div>
+                <h3>Need more data</h3>
+                <p>Track medications for at least 7 days to see time analysis</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Analyze adherence by time
+    const timeStats = {};
+    logs.forEach(log => {
+        if (!timeStats[log.scheduled_time]) {
+            timeStats[log.scheduled_time] = { taken: 0, missed: 0, total: 0 };
+        }
+        timeStats[log.scheduled_time].total++;
+        if (log.status === 'taken') {
+            timeStats[log.scheduled_time].taken++;
+        }
+    });
+    
+    // Calculate percentages and find best/worst
+    const times = Object.keys(timeStats).map(time => {
+        const stats = timeStats[time];
+        const percentage = (stats.taken / stats.total) * 100;
+        return {
+            time: time,
+            percentage: percentage,
+            taken: stats.taken,
+            total: stats.total
+        };
+    });
+    
+    times.sort((a, b) => b.percentage - a.percentage);
+    
+    const best = times[0];
+    const worst = times[times.length - 1];
+    
+    container.innerHTML = `
+        <div class="adherence-stats">
+            <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <div class="stat-number">${formatTime(best.time)}</div>
+                <div class="stat-label">Best Time (${best.percentage.toFixed(0)}%)</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                <div class="stat-number">${formatTime(worst.time)}</div>
+                <div class="stat-label">Worst Time (${worst.percentage.toFixed(0)}%)</div>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <h3 style="margin-bottom: 15px;">All Times</h3>
+            ${times.map(t => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--item-bg); margin-bottom: 8px; border-radius: 8px;">
+                    <span><strong>${formatTime(t.time)}</strong></span>
+                    <span>${t.taken}/${t.total} (${t.percentage.toFixed(0)}%)</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
