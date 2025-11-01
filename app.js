@@ -1497,7 +1497,7 @@ function setupMoodButtons() {
     });
 }
 
-// Select spoons (0-12 scale)
+// Select spoons (0-10 scale)
 function selectSpoons(count) {
     selectedSpoons = count;
     
@@ -1511,18 +1511,18 @@ function selectSpoons(count) {
         }
     });
     
-    // Update status message based on spoon theory
+    // Update status message based on spoon theory (0-10 scale)
     const statusDiv = document.getElementById('spoon-status');
     let status = '';
     let emoji = '';
     
-    if (count <= 3) {
+    if (count <= 2) {
         status = 'Crisis Mode - Be gentle with yourself';
         emoji = '🔴';
-    } else if (count <= 6) {
+    } else if (count <= 5) {
         status = 'Low Energy - Prioritize essential tasks';
         emoji = '🟡';
-    } else if (count <= 9) {
+    } else if (count <= 7) {
         status = 'Moderate Energy - Pace yourself';
         emoji = '🟢';
     } else {
@@ -1755,12 +1755,12 @@ async function displayJournalEntry(date) {
             day: 'numeric'
         });
         
-        // Get spoon status
+        // Get spoon status (0-10 scale)
         const spoons = entry.energy_level || 0;
         let spoonStatus = '';
-        if (spoons <= 3) spoonStatus = 'Crisis Mode';
-        else if (spoons <= 6) spoonStatus = 'Low Energy';
-        else if (spoons <= 9) spoonStatus = 'Moderate Energy';
+        if (spoons <= 2) spoonStatus = 'Crisis Mode';
+        else if (spoons <= 5) spoonStatus = 'Low Energy';
+        else if (spoons <= 7) spoonStatus = 'Moderate Energy';
         else spoonStatus = 'Good Energy';
         
         contentDiv.innerHTML = `
