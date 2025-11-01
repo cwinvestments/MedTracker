@@ -907,6 +907,10 @@ async function copyToClipboard() {
                 if (med.doctor) text += `   Doctor: ${med.doctor}\n`;
                 if (med.purpose) text += `   Purpose: ${med.purpose}\n`;
                 if (med.pharmacy) text += `   Pharmacy: ${med.pharmacy}\n`;
+                if (med.pills_remaining !== null) text += `   Pills Remaining: ${med.pills_remaining}${med.total_pills ? ` / ${med.total_pills}` : ''}\n`;
+                if (med.refill_by_date) text += `   Refill By: ${formatRefillDate(med.refill_by_date)}\n`;
+                if (med.cost_per_refill) text += `   Cost: $${parseFloat(med.cost_per_refill).toFixed(2)}\n`;
+                if (med.notes) text += `   Notes: ${med.notes}\n`;
                 text += '\n';
             });
         }
@@ -930,12 +934,12 @@ async function generatePreview() {
     const container = document.getElementById('preview-content');
     
     if (!medications || medications.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #999;">No medications to display</p>';
+        container.innerHTML = '<p style="text-align: center; opacity: 0.7;">No medications to display</p>';
         return;
     }
     
     let html = '<h2 style="text-align: center;">My Medication List</h2>';
-    html += '<p style="text-align: center; color: #666; margin-bottom: 30px;">Generated: ' + new Date().toLocaleDateString() + '</p>';
+    html += '<p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">Generated: ' + new Date().toLocaleDateString() + '</p>';
     
     // Group by category for print view
     const categories = {
@@ -955,17 +959,21 @@ async function generatePreview() {
     Object.keys(categories).forEach(catKey => {
         const cat = categories[catKey];
         if (cat.meds.length > 0) {
-            html += `<h3 style="color: #333; margin-top: 30px; margin-bottom: 15px;">${cat.name}</h3>`;
+            html += `<h3 style="margin-top: 30px; margin-bottom: 15px;">${cat.name}</h3>`;
             cat.meds.forEach((med, index) => {
                 html += `
-                    <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
-                        <h4 style="color: #333; margin-bottom: 8px;">${med.name}</h4>
+                    <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 8px;">${med.name}</h4>
                         <p style="margin: 3px 0;"><strong>Dosage:</strong> ${med.dosage}</p>
                         <p style="margin: 3px 0;"><strong>Frequency:</strong> ${med.frequency}</p>
                         <p style="margin: 3px 0;"><strong>Times:</strong> ${med.times.map(t => formatTime(t)).join(', ')}</p>
                         ${med.doctor ? `<p style="margin: 3px 0;"><strong>Doctor:</strong> ${med.doctor}</p>` : ''}
                         ${med.purpose ? `<p style="margin: 3px 0;"><strong>Purpose:</strong> ${med.purpose}</p>` : ''}
                         ${med.pharmacy ? `<p style="margin: 3px 0;"><strong>Pharmacy:</strong> ${med.pharmacy}</p>` : ''}
+                        ${med.pills_remaining !== null ? `<p style="margin: 3px 0;"><strong>Pills Remaining:</strong> ${med.pills_remaining}${med.total_pills ? ` / ${med.total_pills}` : ''}</p>` : ''}
+                        ${med.refill_by_date ? `<p style="margin: 3px 0;"><strong>Refill By:</strong> ${formatRefillDate(med.refill_by_date)}</p>` : ''}
+                        ${med.cost_per_refill ? `<p style="margin: 3px 0;"><strong>Cost:</strong> $${parseFloat(med.cost_per_refill).toFixed(2)}</p>` : ''}
+                        ${med.notes ? `<p style="margin: 3px 0;"><strong>Notes:</strong> ${med.notes}</p>` : ''}
                     </div>
                 `;
             });
