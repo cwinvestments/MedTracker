@@ -504,43 +504,47 @@ async function editMedication(id) {
         return;
     }
     
-    // Switch to Add tab
-    switchTab('add');
+    // Switch to Add tab and wait for it to render
+    const addTabBtn = document.querySelectorAll('.tab-btn')[2]; // Add Medication is 3rd tab
+    addTabBtn.click();
     
-    // Populate the form
-    document.getElementById('med-name').value = med.name;
-    document.getElementById('med-dosage').value = med.dosage;
-    document.getElementById('med-category').value = med.category || 'prescribed';
-    document.getElementById('med-frequency').value = med.frequency;
-    document.getElementById('med-doctor').value = med.doctor || '';
-    document.getElementById('med-purpose').value = med.purpose || '';
-    document.getElementById('med-pharmacy').value = med.pharmacy || '';
-    
-    // Update time inputs
-    updateTimeInputs();
-    
-    // Set the times
+    // Wait a moment for tab to switch
     setTimeout(() => {
-        const timeInputs = document.querySelectorAll('.time-input');
-        med.times.forEach((time, index) => {
-            if (timeInputs[index]) {
-                timeInputs[index].value = time;
-            }
-        });
+        // Populate the form
+        document.getElementById('med-name').value = med.name;
+        document.getElementById('med-dosage').value = med.dosage;
+        document.getElementById('med-category').value = med.category || 'prescribed';
+        document.getElementById('med-frequency').value = med.frequency;
+        document.getElementById('med-doctor').value = med.doctor || '';
+        document.getElementById('med-purpose').value = med.purpose || '';
+        document.getElementById('med-pharmacy').value = med.pharmacy || '';
+        
+        // Trigger frequency change to populate time inputs
+        updateTimeInputs();
+        
+        // Set the times after time inputs are created
+        setTimeout(() => {
+            const timeInputs = document.querySelectorAll('.time-input');
+            med.times.forEach((time, index) => {
+                if (timeInputs[index]) {
+                    timeInputs[index].value = time;
+                }
+            });
+        }, 200);
+        
+        // Change form to update mode
+        const form = document.getElementById('medication-form');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.textContent = '💾 Update Medication';
+        submitBtn.classList.add('btn-success');
+        submitBtn.classList.remove('btn-primary');
+        
+        // Store the ID for updating
+        form.dataset.editId = id;
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
-    
-    // Change form to update mode
-    const form = document.getElementById('medication-form');
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.textContent = '💾 Update Medication';
-    submitBtn.classList.add('btn-success');
-    submitBtn.classList.remove('btn-primary');
-    
-    // Store the ID for updating
-    form.dataset.editId = id;
-    
-    // Scroll to top
-    window.scrollTo(0, 0);
 }
 
 // Load today's schedule
