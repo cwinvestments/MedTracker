@@ -50,6 +50,7 @@ function showApp() {
     document.getElementById('auth-container').style.display = 'none';
     document.getElementById('app-container').style.display = 'block';
     document.getElementById('user-email-display').textContent = currentUser.email;
+    loadDarkModePreference();
 }
 
 // Switch auth tabs
@@ -118,6 +119,26 @@ async function handleLogout() {
     const { error } = await supabase.auth.signOut();
     if (error) {
         alert('Error signing out: ' + error.message);
+    }
+}
+
+// Toggle dark mode
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    
+    const btn = document.querySelector('.dark-mode-toggle');
+    btn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+}
+
+// Load dark mode preference
+function loadDarkModePreference() {
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    if (isDark) {
+        document.body.classList.add('dark-mode');
+        const btn = document.querySelector('.dark-mode-toggle');
+        if (btn) btn.textContent = '☀️ Light Mode';
     }
 }
 
@@ -261,7 +282,12 @@ async function addMedication(event) {
         times: times,
         doctor: document.getElementById('med-doctor').value || null,
         purpose: document.getElementById('med-purpose').value || null,
-        pharmacy: document.getElementById('med-pharmacy').value || null
+        pharmacy: document.getElementById('med-pharmacy').value || null,
+        pills_remaining: document.getElementById('med-pills-remaining').value || null,
+        total_pills: document.getElementById('med-total-pills').value || null,
+        refill_by_date: document.getElementById('med-refill-date').value || null,
+        cost_per_refill: document.getElementById('med-cost').value || null,
+        notes: document.getElementById('med-notes').value || null
     };
     
     let result;
@@ -375,6 +401,7 @@ function clearForm() {
 // Load medications
 async function loadMedications() {
     const filterValue = document.getElementById('category-filter') ? document.getElementById('category-filter').value : 'all';
+    const searchValue = document.getElementById('med-search') ? document.getElementById('med-search').value.toLowerCase() : '';
     
     const { data: medications, error } = await supabase
         .from('medications')
@@ -396,17 +423,26 @@ async function loadMedications() {
         return;
     }
     
-    // Filter medications by category if needed
-    const filteredMeds = filterValue === 'all' 
+    // Filter medications by category and search
+    let filteredMeds = filterValue === 'all' 
         ? medications 
         : medications.filter(med => med.category === filterValue);
+    
+    // Apply search filter
+    if (searchValue) {
+        filteredMeds = filteredMeds.filter(med => 
+            med.name.toLowerCase().includes(searchValue) ||
+            (med.doctor && med.doctor.toLowerCase().includes(searchValue)) ||
+            (med.purpose && med.purpose.toLowerCase().includes(searchValue))
+        );
+    }
     
     if (filteredMeds.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">💊</div>
-                <h3>No medications in this category</h3>
-                <p>Try selecting a different category</p>
+                <h3>No medications found</h3>
+                <p>Try adjusting your search or filter</p>
             </div>
         `;
         return;
@@ -433,8 +469,23 @@ async function loadMedications() {
     Object.keys(categories).forEach(catKey => {
         const cat = categories[catKey];
         if (cat.meds.length > 0) {
-            html += `<h3 style="margin-top: 20px; margin-bottom: 15px; color: #333;">${cat.name}</h3>`;
-            html += cat.meds.map(med => `
+            html += `<h3 style="margin-top: 20px; margin-bottom: 15px; color: var(--text-primary);">${cat.name}</h3>`;
+            html += cat.meds.map(med => {
+                // Calculate refill warning
+                let refillWarning = '';
+                if (med.pills_remaining !== null && med.refill_by_date) {
+                    const today = new Date();
+                    const refillDate = new Date(med.refill_by_date);
+                    const daysUntil = Math.ceil((refillDate - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (med.pills_remaining <= 5) {
+                        refillWarning = `<div class="refill-critical">⚠️ CRITICAL: Only ${med.pills_remaining} pills remaining!</div>`;
+                    } else if (med.pills_remaining <= 15 || daysUntil <= 7) {
+                        refillWarning = `<div class="refill-warning">⚠️ Low supply: ${med.pills_remaining} pills remaining. Refill by ${formatRefillDate(med.refill_by_date)}</div>`;
+                    }
+                }
+                
+                return `
                 <li class="med-item">
                     <h3>
                         ${med.name}
@@ -447,17 +498,29 @@ async function loadMedications() {
                         ${med.doctor ? `<strong>Doctor:</strong> ${med.doctor}<br>` : ''}
                         ${med.purpose ? `<strong>Purpose:</strong> ${med.purpose}<br>` : ''}
                         ${med.pharmacy ? `<strong>Pharmacy:</strong> ${med.pharmacy}<br>` : ''}
+                        ${med.pills_remaining !== null ? `<strong>Pills Remaining:</strong> ${med.pills_remaining}${med.total_pills ? ` / ${med.total_pills}` : ''}<br>` : ''}
+                        ${med.refill_by_date ? `<strong>Refill By:</strong> ${formatRefillDate(med.refill_by_date)}<br>` : ''}
+                        ${med.cost_per_refill ? `<strong>Cost per Refill:</strong> $${parseFloat(med.cost_per_refill).toFixed(2)}<br>` : ''}
+                        ${med.notes ? `<strong>Notes:</strong> ${med.notes}<br>` : ''}
                     </div>
+                    ${refillWarning}
                     <div class="med-actions">
                         <button class="btn btn-primary" onclick="editMedication('${med.id}')">✏️ Edit</button>
                         <button class="btn btn-danger" onclick="deleteMedication('${med.id}')">Delete</button>
                     </div>
                 </li>
-            `).join('');
+            `;
+            }).join('');
         }
     });
     
     container.innerHTML = html;
+}
+
+// Format refill date
+function formatRefillDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 // Get category label
@@ -518,6 +581,11 @@ async function editMedication(id) {
         document.getElementById('med-doctor').value = med.doctor || '';
         document.getElementById('med-purpose').value = med.purpose || '';
         document.getElementById('med-pharmacy').value = med.pharmacy || '';
+        document.getElementById('med-pills-remaining').value = med.pills_remaining || '';
+        document.getElementById('med-total-pills').value = med.total_pills || '';
+        document.getElementById('med-refill-date').value = med.refill_by_date || '';
+        document.getElementById('med-cost').value = med.cost_per_refill || '';
+        document.getElementById('med-notes').value = med.notes || '';
         
         // Trigger frequency change to populate time inputs
         updateTimeInputs();
