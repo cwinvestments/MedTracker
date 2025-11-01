@@ -248,6 +248,8 @@ function addTimeInput() {
 async function addMedication(event) {
     event.preventDefault();
     
+    const form = event.target;
+    const editId = form.dataset.editId;
     const times = Array.from(document.querySelectorAll('.time-input')).map(input => input.value);
     
     const medication = {
@@ -262,15 +264,30 @@ async function addMedication(event) {
         pharmacy: document.getElementById('med-pharmacy').value || null
     };
     
-    const { data, error } = await supabase
-        .from('medications')
-        .insert([medication])
-        .select();
+    let result;
+    
+    if (editId) {
+        // Update existing medication
+        result = await supabase
+            .from('medications')
+            .update(medication)
+            .eq('id', editId)
+            .eq('user_id', currentUser.id)
+            .select();
+    } else {
+        // Insert new medication
+        result = await supabase
+            .from('medications')
+            .insert([medication])
+            .select();
+    }
+    
+    const { data, error } = result;
     
     if (error) {
-        showAppMessage('Error adding medication: ' + error.message, 'error');
+        showAppMessage('Error saving medication: ' + error.message, 'error');
     } else {
-        showAppMessage('✅ Medication added successfully!', 'success');
+        showAppMessage(editId ? '✅ Medication updated successfully!' : '✅ Medication added successfully!', 'success');
         clearForm();
         loadMedications();
         loadTodaySchedule();
@@ -343,12 +360,22 @@ function convertTo24Hour(time) {
 
 // Clear form
 function clearForm() {
-    document.getElementById('medication-form').reset();
+    const form = document.getElementById('medication-form');
+    form.reset();
     document.getElementById('time-inputs').innerHTML = '';
+    
+    // Reset edit mode
+    delete form.dataset.editId;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Add Medication';
+    submitBtn.classList.remove('btn-success');
+    submitBtn.classList.add('btn-primary');
 }
 
 // Load medications
 async function loadMedications() {
+    const filterValue = document.getElementById('category-filter') ? document.getElementById('category-filter').value : 'all';
+    
     const { data: medications, error } = await supabase
         .from('medications')
         .select('*')
@@ -369,6 +396,22 @@ async function loadMedications() {
         return;
     }
     
+    // Filter medications by category if needed
+    const filteredMeds = filterValue === 'all' 
+        ? medications 
+        : medications.filter(med => med.category === filterValue);
+    
+    if (filteredMeds.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">💊</div>
+                <h3>No medications in this category</h3>
+                <p>Try selecting a different category</p>
+            </div>
+        `;
+        return;
+    }
+    
     // Group by category
     const categories = {
         prescribed: { name: '💊 Prescribed Medications', meds: [] },
@@ -377,7 +420,7 @@ async function loadMedications() {
         injections: { name: '💉 Injections', meds: [] }
     };
     
-    medications.forEach(med => {
+    filteredMeds.forEach(med => {
         const category = med.category || 'prescribed';
         if (categories[category]) {
             categories[category].meds.push(med);
@@ -406,6 +449,7 @@ async function loadMedications() {
                         ${med.pharmacy ? `<strong>Pharmacy:</strong> ${med.pharmacy}<br>` : ''}
                     </div>
                     <div class="med-actions">
+                        <button class="btn btn-primary" onclick="editMedication('${med.id}')">✏️ Edit</button>
                         <button class="btn btn-danger" onclick="deleteMedication('${med.id}')">Delete</button>
                     </div>
                 </li>
@@ -445,8 +489,64 @@ async function deleteMedication(id) {
     }
 }
 
+// Edit medication
+async function editMedication(id) {
+    // Get the medication data
+    const { data: med, error } = await supabase
+        .from('medications')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', currentUser.id)
+        .single();
+    
+    if (error || !med) {
+        alert('Error loading medication: ' + (error?.message || 'Not found'));
+        return;
+    }
+    
+    // Switch to Add tab
+    switchTab('add');
+    
+    // Populate the form
+    document.getElementById('med-name').value = med.name;
+    document.getElementById('med-dosage').value = med.dosage;
+    document.getElementById('med-category').value = med.category || 'prescribed';
+    document.getElementById('med-frequency').value = med.frequency;
+    document.getElementById('med-doctor').value = med.doctor || '';
+    document.getElementById('med-purpose').value = med.purpose || '';
+    document.getElementById('med-pharmacy').value = med.pharmacy || '';
+    
+    // Update time inputs
+    updateTimeInputs();
+    
+    // Set the times
+    setTimeout(() => {
+        const timeInputs = document.querySelectorAll('.time-input');
+        med.times.forEach((time, index) => {
+            if (timeInputs[index]) {
+                timeInputs[index].value = time;
+            }
+        });
+    }, 100);
+    
+    // Change form to update mode
+    const form = document.getElementById('medication-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.textContent = '💾 Update Medication';
+    submitBtn.classList.add('btn-success');
+    submitBtn.classList.remove('btn-primary');
+    
+    // Store the ID for updating
+    form.dataset.editId = id;
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
+
 // Load today's schedule
 async function loadTodaySchedule() {
+    const filterValue = document.getElementById('today-category-filter') ? document.getElementById('today-category-filter').value : 'all';
+    
     const { data: medications, error } = await supabase
         .from('medications')
         .select('*')
@@ -461,6 +561,22 @@ async function loadTodaySchedule() {
                 <div class="empty-state-icon">📅</div>
                 <h3>No medications scheduled for today</h3>
                 <p>Add medications to see your daily schedule</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Filter by category if needed
+    const filteredMeds = filterValue === 'all' 
+        ? medications 
+        : medications.filter(med => med.category === filterValue);
+    
+    if (filteredMeds.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <h3>No medications in this category</h3>
+                <p>Try selecting a different category</p>
             </div>
         `;
         return;
@@ -483,7 +599,7 @@ async function loadTodaySchedule() {
     
     // Generate schedule items
     let scheduleItems = [];
-    medications.forEach(med => {
+    filteredMeds.forEach(med => {
         med.times.forEach(time => {
             const key = `${med.id}-${time}`;
             const status = logMap[key] || 'pending';

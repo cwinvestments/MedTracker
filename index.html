@@ -532,7 +532,16 @@
             <!-- Today's Schedule Tab -->
             <div id="today-tab" class="tab-content active">
                 <div class="card">
-                    <h2>Today's Medication Schedule</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>Today's Medication Schedule</h2>
+                        <select id="today-category-filter" onchange="loadTodaySchedule()" style="width: auto; padding: 8px 16px;">
+                            <option value="all">All Categories</option>
+                            <option value="prescribed">💊 Prescribed</option>
+                            <option value="supplements">🌿 Supplements</option>
+                            <option value="otc">🏥 OTC</option>
+                            <option value="injections">💉 Injections</option>
+                        </select>
+                    </div>
                     <div id="today-schedule">
                         <div class="empty-state">
                             <div class="empty-state-icon">📅</div>
@@ -564,7 +573,16 @@
             <!-- Medications List Tab -->
             <div id="medications-tab" class="tab-content">
                 <div class="card">
-                    <h2>My Medications</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>My Medications</h2>
+                        <select id="category-filter" onchange="loadMedications()" style="width: auto; padding: 8px 16px;">
+                            <option value="all">All Categories</option>
+                            <option value="prescribed">💊 Prescribed</option>
+                            <option value="supplements">🌿 Supplements</option>
+                            <option value="otc">🏥 OTC</option>
+                            <option value="injections">💉 Injections</option>
+                        </select>
+                    </div>
                     <ul class="med-list" id="med-list">
                         <div class="empty-state">
                             <div class="empty-state-icon">💊</div>
