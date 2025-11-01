@@ -4,8 +4,8 @@
   "description": "Track your medications, set reminders, and maintain adherence",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1e3c72",
-  "theme_color": "#1e3c72",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
   "orientation": "portrait",
   "icons": [
     {
