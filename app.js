@@ -698,12 +698,14 @@ async function loadTodaySchedule() {
                 <div class="schedule-med-name">${item.med.name}</div>
                 <div class="schedule-dosage">${item.med.dosage}</div>
             </div>
-            <div>
-                <span class="status-badge status-${item.status}">${item.status.toUpperCase()}</span>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 ${item.status === 'pending' ? `
-                    <button class="btn btn-success" style="margin-left: 10px; padding: 8px 16px;" onclick="markTaken('${item.medId}', '${item.time}', '${item.med.name}', '${item.med.dosage}')">✓ Taken</button>
-                    <button class="btn btn-danger" style="padding: 8px 16px;" onclick="markMissed('${item.medId}', '${item.time}', '${item.med.name}', '${item.med.dosage}')">✗ Missed</button>
-                ` : ''}
+                    <span class="status-badge status-${item.status}">PENDING</span>
+                    <button class="status-action-btn status-action-taken" onclick="markTaken('${item.medId}', '${item.time}', '${item.med.name}', '${item.med.dosage}')">✓ Taken</button>
+                    <button class="status-action-btn status-action-missed" onclick="markMissed('${item.medId}', '${item.time}', '${item.med.name}', '${item.med.dosage}')">✗ Missed</button>
+                ` : `
+                    <span class="status-badge status-${item.status}">${item.status === 'taken' ? '✓ TAKEN' : '✗ MISSED'}</span>
+                `}
             </div>
         </div>
     `).join('');

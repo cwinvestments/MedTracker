@@ -50,6 +50,13 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1400px;
+            }
         }
 
         .header {
@@ -354,14 +361,20 @@
 
         .schedule-item {
             background: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
             border: 2px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: background 0.3s ease;
+            gap: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .schedule-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .schedule-item.taken {
@@ -371,6 +384,10 @@
 
         body.dark-mode .schedule-item.taken {
             background: #1a3a1f;
+        }
+
+        body.dark-mode .schedule-item:hover {
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
         }
 
         .schedule-item.missed {
@@ -402,6 +419,7 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
+            display: inline-block;
         }
 
         .status-taken {
@@ -417,6 +435,56 @@
         .status-pending {
             background: #ff9800;
             color: white;
+        }
+
+        /* Status Action Buttons */
+        .status-action-btn {
+            padding: 8px 16px;
+            border: 2px solid;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .status-action-taken {
+            background: white;
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .status-action-taken:hover {
+            background: #4CAF50;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .status-action-missed {
+            background: white;
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        .status-action-missed:hover {
+            background: #f44336;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+
+        body.dark-mode .status-action-taken {
+            background: var(--card-bg);
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        body.dark-mode .status-action-missed {
+            background: var(--card-bg);
+            border-color: #f44336;
+            color: #f44336;
         }
 
         .category-badge {
@@ -551,7 +619,12 @@
             .schedule-item {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 10px;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .schedule-item > div:last-child {
+                width: 100%;
             }
         }
 
@@ -885,7 +958,7 @@
     <div id="auth-container" style="display: none;">
         <div class="auth-container">
             <div class="header">
-                <h1>💊 MedTracker</h1>
+                <h1>💊 MedTracker 💊</h1>
                 <p>Secure Medication Tracking</p>
             </div>
             
@@ -941,7 +1014,7 @@
     <div id="app-container" style="display: none;">
         <div class="container">
             <div class="header">
-                <h1>💊 MedTracker</h1>
+                <h1>💊 MedTracker 💊</h1>
                 <p>Your Secure Medication Tracker</p>
             </div>
 
@@ -949,7 +1022,7 @@
                 <div class="user-email">
                     <span id="user-email-display"></span>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
                     <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
                     <button class="btn btn-secondary" onclick="handleLogout()">Sign Out</button>
                 </div>
