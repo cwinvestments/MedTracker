@@ -254,6 +254,7 @@ async function addMedication(event) {
         user_id: currentUser.id,
         name: document.getElementById('med-name').value,
         dosage: document.getElementById('med-dosage').value,
+        category: document.getElementById('med-category').value,
         frequency: document.getElementById('med-frequency').value,
         times: times,
         doctor: document.getElementById('med-doctor').value || null,
@@ -296,6 +297,7 @@ async function bulkAddMedications() {
                 user_id: currentUser.id,
                 name: parts[0],
                 dosage: parts[1],
+                category: 'prescribed', // Default category for bulk imports
                 frequency: parts[2],
                 times: times,
                 doctor: null,
@@ -351,6 +353,7 @@ async function loadMedications() {
         .from('medications')
         .select('*')
         .eq('user_id', currentUser.id)
+        .order('category', { ascending: true })
         .order('created_at', { ascending: false });
     
     const container = document.getElementById('med-list');
@@ -366,22 +369,62 @@ async function loadMedications() {
         return;
     }
     
-    container.innerHTML = medications.map(med => `
-        <li class="med-item">
-            <h3>${med.name}</h3>
-            <div class="med-details">
-                <strong>Dosage:</strong> ${med.dosage}<br>
-                <strong>Frequency:</strong> ${med.frequency}<br>
-                <strong>Times:</strong> ${med.times.map(t => formatTime(t)).join(', ')}<br>
-                ${med.doctor ? `<strong>Doctor:</strong> ${med.doctor}<br>` : ''}
-                ${med.purpose ? `<strong>Purpose:</strong> ${med.purpose}<br>` : ''}
-                ${med.pharmacy ? `<strong>Pharmacy:</strong> ${med.pharmacy}<br>` : ''}
-            </div>
-            <div class="med-actions">
-                <button class="btn btn-danger" onclick="deleteMedication('${med.id}')">Delete</button>
-            </div>
-        </li>
-    `).join('');
+    // Group by category
+    const categories = {
+        prescribed: { name: '💊 Prescribed Medications', meds: [] },
+        supplements: { name: '🌿 Vitamins & Supplements', meds: [] },
+        otc: { name: '🏥 Over-the-Counter', meds: [] },
+        injections: { name: '💉 Injections', meds: [] }
+    };
+    
+    medications.forEach(med => {
+        const category = med.category || 'prescribed';
+        if (categories[category]) {
+            categories[category].meds.push(med);
+        }
+    });
+    
+    let html = '';
+    
+    // Display each category that has medications
+    Object.keys(categories).forEach(catKey => {
+        const cat = categories[catKey];
+        if (cat.meds.length > 0) {
+            html += `<h3 style="margin-top: 20px; margin-bottom: 15px; color: #333;">${cat.name}</h3>`;
+            html += cat.meds.map(med => `
+                <li class="med-item">
+                    <h3>
+                        ${med.name}
+                        <span class="category-badge category-${med.category || 'prescribed'}">${getCategoryLabel(med.category)}</span>
+                    </h3>
+                    <div class="med-details">
+                        <strong>Dosage:</strong> ${med.dosage}<br>
+                        <strong>Frequency:</strong> ${med.frequency}<br>
+                        <strong>Times:</strong> ${med.times.map(t => formatTime(t)).join(', ')}<br>
+                        ${med.doctor ? `<strong>Doctor:</strong> ${med.doctor}<br>` : ''}
+                        ${med.purpose ? `<strong>Purpose:</strong> ${med.purpose}<br>` : ''}
+                        ${med.pharmacy ? `<strong>Pharmacy:</strong> ${med.pharmacy}<br>` : ''}
+                    </div>
+                    <div class="med-actions">
+                        <button class="btn btn-danger" onclick="deleteMedication('${med.id}')">Delete</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+    });
+    
+    container.innerHTML = html;
+}
+
+// Get category label
+function getCategoryLabel(category) {
+    const labels = {
+        prescribed: 'Prescribed',
+        supplements: 'Supplement',
+        otc: 'OTC',
+        injections: 'Injection'
+    };
+    return labels[category] || 'Prescribed';
 }
 
 // Delete medication
@@ -637,7 +680,8 @@ async function copyToClipboard() {
     const { data: medications } = await supabase
         .from('medications')
         .select('*')
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.id)
+        .order('category', { ascending: true });
     
     if (!medications || medications.length === 0) {
         alert('No medications to copy');
@@ -647,18 +691,40 @@ async function copyToClipboard() {
     let text = 'MY MEDICATION LIST\n';
     text += '='.repeat(50) + '\n\n';
     
-    medications.forEach((med, index) => {
-        text += `${index + 1}. ${med.name}\n`;
-        text += `   Dosage: ${med.dosage}\n`;
-        text += `   Frequency: ${med.frequency}\n`;
-        text += `   Times: ${med.times.map(t => formatTime(t)).join(', ')}\n`;
-        if (med.doctor) text += `   Doctor: ${med.doctor}\n`;
-        if (med.purpose) text += `   Purpose: ${med.purpose}\n`;
-        if (med.pharmacy) text += `   Pharmacy: ${med.pharmacy}\n`;
-        text += '\n';
+    // Group by category
+    const categories = {
+        prescribed: { name: 'PRESCRIBED MEDICATIONS', meds: [] },
+        supplements: { name: 'VITAMINS & SUPPLEMENTS', meds: [] },
+        otc: { name: 'OVER-THE-COUNTER', meds: [] },
+        injections: { name: 'INJECTIONS', meds: [] }
+    };
+    
+    medications.forEach(med => {
+        const category = med.category || 'prescribed';
+        if (categories[category]) {
+            categories[category].meds.push(med);
+        }
     });
     
-    text += `Generated: ${new Date().toLocaleString()}\n`;
+    Object.keys(categories).forEach(catKey => {
+        const cat = categories[catKey];
+        if (cat.meds.length > 0) {
+            text += `\n${cat.name}\n`;
+            text += '-'.repeat(cat.name.length) + '\n\n';
+            cat.meds.forEach((med, index) => {
+                text += `${index + 1}. ${med.name}\n`;
+                text += `   Dosage: ${med.dosage}\n`;
+                text += `   Frequency: ${med.frequency}\n`;
+                text += `   Times: ${med.times.map(t => formatTime(t)).join(', ')}\n`;
+                if (med.doctor) text += `   Doctor: ${med.doctor}\n`;
+                if (med.purpose) text += `   Purpose: ${med.purpose}\n`;
+                if (med.pharmacy) text += `   Pharmacy: ${med.pharmacy}\n`;
+                text += '\n';
+            });
+        }
+    });
+    
+    text += `\nGenerated: ${new Date().toLocaleString()}\n`;
     
     navigator.clipboard.writeText(text).then(() => {
         alert('✅ Medication list copied to clipboard!');
@@ -670,7 +736,8 @@ async function generatePreview() {
     const { data: medications } = await supabase
         .from('medications')
         .select('*')
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.id)
+        .order('category', { ascending: true });
     
     const container = document.getElementById('preview-content');
     
@@ -682,18 +749,39 @@ async function generatePreview() {
     let html = '<h2 style="text-align: center;">My Medication List</h2>';
     html += '<p style="text-align: center; color: #666; margin-bottom: 30px;">Generated: ' + new Date().toLocaleDateString() + '</p>';
     
-    medications.forEach((med, index) => {
-        html += `
-            <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #ddd;">
-                <h3 style="color: #333; margin-bottom: 10px;">${index + 1}. ${med.name}</h3>
-                <p style="margin: 5px 0;"><strong>Dosage:</strong> ${med.dosage}</p>
-                <p style="margin: 5px 0;"><strong>Frequency:</strong> ${med.frequency}</p>
-                <p style="margin: 5px 0;"><strong>Times:</strong> ${med.times.map(t => formatTime(t)).join(', ')}</p>
-                ${med.doctor ? `<p style="margin: 5px 0;"><strong>Doctor:</strong> ${med.doctor}</p>` : ''}
-                ${med.purpose ? `<p style="margin: 5px 0;"><strong>Purpose:</strong> ${med.purpose}</p>` : ''}
-                ${med.pharmacy ? `<p style="margin: 5px 0;"><strong>Pharmacy:</strong> ${med.pharmacy}</p>` : ''}
-            </div>
-        `;
+    // Group by category for print view
+    const categories = {
+        prescribed: { name: '💊 Prescribed Medications', meds: [] },
+        supplements: { name: '🌿 Vitamins & Supplements', meds: [] },
+        otc: { name: '🏥 Over-the-Counter', meds: [] },
+        injections: { name: '💉 Injections', meds: [] }
+    };
+    
+    medications.forEach(med => {
+        const category = med.category || 'prescribed';
+        if (categories[category]) {
+            categories[category].meds.push(med);
+        }
+    });
+    
+    Object.keys(categories).forEach(catKey => {
+        const cat = categories[catKey];
+        if (cat.meds.length > 0) {
+            html += `<h3 style="color: #333; margin-top: 30px; margin-bottom: 15px;">${cat.name}</h3>`;
+            cat.meds.forEach((med, index) => {
+                html += `
+                    <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
+                        <h4 style="color: #333; margin-bottom: 8px;">${med.name}</h4>
+                        <p style="margin: 3px 0;"><strong>Dosage:</strong> ${med.dosage}</p>
+                        <p style="margin: 3px 0;"><strong>Frequency:</strong> ${med.frequency}</p>
+                        <p style="margin: 3px 0;"><strong>Times:</strong> ${med.times.map(t => formatTime(t)).join(', ')}</p>
+                        ${med.doctor ? `<p style="margin: 3px 0;"><strong>Doctor:</strong> ${med.doctor}</p>` : ''}
+                        ${med.purpose ? `<p style="margin: 3px 0;"><strong>Purpose:</strong> ${med.purpose}</p>` : ''}
+                        ${med.pharmacy ? `<p style="margin: 3px 0;"><strong>Pharmacy:</strong> ${med.pharmacy}</p>` : ''}
+                    </div>
+                `;
+            });
+        }
     });
     
     container.innerHTML = html;
